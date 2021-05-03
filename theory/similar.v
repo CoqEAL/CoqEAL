@@ -489,11 +489,13 @@ have {}H: M0 * ('X - A%:P) * N0 = (1 - ('X - B%:P) * R1) * ('X - B%:P).
     by rewrite [phi M](rdivp_l_eq (monicXsubC B)) addrK.
   have HN1: N1 * ('X - B%:P) = phi N - N0.
     by rewrite [phi N](rdivp_eq (monicXsubC B)) addrK.
-  rewrite /R1 mulrBr mulrDr !mulrA HM1 mulrBl mulrDl mulrDl.
+  rewrite /R1 mulrBr (mulrDr (_ - B%:P)) !mulrA HM1 mulrBl mulrDl mulrDl.
   rewrite mulNr -![_ * N1 * _]mulrA HN1 2!mulrBl.
   rewrite ![_ * (phi N - N0)]mulrBr ![(phi M - M0) * _]mulrBl.
   rewrite -[_ * _ * phi N]mulrA -!rmorphM divrr // mulVr // !rmorph1 !mulr1.
-  rewrite mul1r 2!mulrBl H 3!opprD !opprK !addrA addrN add0r -{1 3}H.
+  rewrite mul1r 2!mulrBl H [X in _ = _ + X]opprD.
+  rewrite [X in _ + (X - _)]opprD [X in _ + ((X - _) - _)]opprD !opprK.
+  rewrite !addrA addrN add0r -{1 3}H.
   rewrite !mulrA -[_ * _ * phi M]mulrA -[_ * _ * phi N^-1]mulrA -!rmorphM.
   rewrite divrr // mulVr // !rmorph1 !mulr1 opprB addrA.
   rewrite -{1}[_ + _ - B%:P]addrA subrK (addrC (M0 * _ * _)) addrK.
@@ -530,26 +532,26 @@ Lemma similar_mxminpoly m' n' (A : 'M[R]_m'.+1) (B : 'M[R]_n'.+1) :
    similar A B -> mxminpoly A = mxminpoly B.
 Proof.
 move=> HAB; apply/eqP; rewrite -eqp_monic //; try exact: mxminpoly_monic.
-apply/andP; split; apply: mxminpoly_min. 
+apply/andP; split; apply: mxminpoly_min.
   by apply/(similar_horner (similar_sym HAB))/mx_root_minpoly.
 by apply/(similar_horner HAB)/mx_root_minpoly.
 Qed.
- 
+
 Lemma similar_char_poly m' n' (A : 'M[R]_m') (B : 'M[R]_n') :
     similar A B -> char_poly A = char_poly B.
 Proof.
 case=> eq [P [HP HAB]]; rewrite /char_poly /char_poly_mx.
 have H: map_mx polyC P \in unitmx by rewrite map_unitmx.
 apply: similar_det; split=> //.
-rewrite -eq in B HAB *; rewrite conform_mx_id in HAB. 
+rewrite -eq in B HAB *; rewrite conform_mx_id in HAB.
 exists (map_mx polyC P); split=> //; rewrite conform_mx_id.
-by rewrite mulmxDr mulmxDl scalar_mxC mulmxN mulNmx -!map_mxM HAB. 
+by rewrite mulmxDr mulmxDl scalar_mxC mulmxN mulNmx -!map_mxM HAB.
 Qed.
 
 End Field.
 
 Section DvdRing.
- 
+
 Local Open Scope ring_scope.
 Import GRing.Theory.
 Variable R : dvdRingType.
@@ -563,7 +565,7 @@ case: n=> [_ _|n]; first exact: equiv0l.
 case: m=> [_ _|m Hs]; first exact: equiv0r.
 move: Hs n m.
 pose P := (fun (s1 s2 : seq R) => forall n m,
-  (forall i, nth 0 s1 i %= nth 0 s2 i) -> 
+  (forall i, nth 0 s1 i %= nth 0 s2 i) ->
   equivalent (diag_mx_seq n.+1 m.+1 s1) (diag_mx_seq n.+1 m.+1 s2)).
 apply: (seq2_ind (P:=P))=> /= [n m _ | x1 x2 s0 s3 IH n m Hi].
   by rewrite !diag_mx_seq_nil; apply: equiv_refl.
@@ -576,8 +578,8 @@ have Hx12: (@equivalent _ 1 1 1 1 x1%:M x2%:M).
   rewrite conform_mx_id.
   exists c%:M; exists 1%:M; split.
     +by rewrite -scalemx1 unitmxZ // unitmx1.
-    +by rewrite unitmx1. 
-  by rewrite mul_scalar_mx scale_scalar_mx mulmx1 Hcx. 
+    +by rewrite unitmx1.
+  by rewrite mul_scalar_mx scale_scalar_mx mulmx1 Hcx.
 apply: (equiv_dgblockmx Hx12).
 case: n=> [|n]; first exact: equiv0l.
 case: m=> [|m]; first exact: equiv0r.

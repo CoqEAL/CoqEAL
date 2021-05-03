@@ -1,8 +1,9 @@
 (** This file is part of CoqEAL, the Coq Effective Algebra Library.
 (c) Copyright INRIA and University of Gothenburg, see LICENSE *)
 (* Require Import ZArith. *)
+From HB Require Import structures.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq path.
-From mathcomp Require Import ssralg ssrint ssrnum fintype.
+From mathcomp Require Import ssralg ssrint ssrnum fintype choice.
 From mathcomp Require Import matrix mxalgebra bigop zmodp perm.
 Require Import edr dvdring mxstructure.
 
@@ -13,8 +14,6 @@ Unset Printing Implicit Defensive.
 Import GRing.Theory.
 
 Local Open Scope ring_scope.
-
-Section smith.
 
 (* Two-steps approach:
 
@@ -32,20 +31,20 @@ Section smith.
 For any i j s.t. ~~ g %| M i j, xrow 0 i M, bezout step on the first row
 and back to 1) *)
 
-Variable E : euclidDomainType.
+HB.factory Record Smith E of EuclideanDomain E := {
+  find1 : forall m n, 'M[E]_(m.+1,n.+1) -> E -> option 'I_m;
+  find2 : forall m n, 'M[E]_(m.+1,n.+1) -> E -> option ('I_(1+m) * 'I_n);
+  find_pivot :
+    forall m n, 'M[E]_(1 + m,1 + n) -> option ('I_(1 + m) * 'I_(1 + n));
+  find1P : forall m n (E : 'M[E]_(1 + m,1 + n)) a,
+    pick_spec [pred i | ~~(a %| E (lift 0 i) 0)] (find1 _ _ E a);
+  find2P : forall m n (E : 'M[E]_(1 + m,1 + n)) a,
+    pick_spec [pred ij | ~~(a %| E ij.1 (lift 0 ij.2))] (find2 _ _ E a);
+  find_pivotP : forall m n (E : 'M[E]_(1 + m,1 + n)),
+    pick_spec [pred ij | E ij.1 ij.2 != 0] (find_pivot _ _ E)
+}.
 
-
-Variable find1 : forall m n, 'M[E]_(m.+1,n.+1) -> E -> option 'I_m.
-Variable find2 : forall m n, 'M[E]_(m.+1,n.+1) -> E -> option ('I_(1+m) * 'I_n).
-Variable find_pivot :
-  forall m n, 'M[E]_(1 + m,1 + n) -> option ('I_(1 + m) * 'I_(1 + n)).
-
-Hypothesis find1P : forall m n (E : 'M[E]_(1 + m,1 + n)) a,
-  pick_spec [pred i | ~~(a %| E (lift 0 i) 0)] (find1 E a).
-Hypothesis find2P : forall m n (E : 'M[E]_(1 + m,1 + n)) a,
-  pick_spec [pred ij | ~~(a %| E ij.1 (lift 0 ij.2))] (find2 E a).
-Hypothesis find_pivotP : forall m n (E : 'M[E]_(1 + m,1 + n)),
-  pick_spec [pred ij | E ij.1 ij.2 != 0] (find_pivot E).
+HB.builders Context E of Smith E.
 
 Fixpoint improve_pivot_rec k {m n} :
   'M[E]_(1 + m) -> 'M[E]_(1 + m, 1 + n) -> 'M[E]_(1 + n) ->
@@ -98,7 +97,7 @@ Fixpoint Smith m n : 'M[E]_(m,n) -> 'M[E]_(m) * seq E * 'M[E]_(n) :=
   | _, _ => fun M => (1%:M, [::], 1%:M)
   end.
 
-CoInductive improve_pivot_rec_spec m n P M Q :
+Variant improve_pivot_rec_spec m n P M Q :
   'M_(1 + m) * 'M_(1 + m,1 + n) * 'M[E]_(1 + n) -> Type :=
   ImprovePivotQecSpec P' M' Q' of P^-1 *m M *m Q^-1 = P'^-1 *m M' *m Q'^-1
   & (forall i j, M' 0 0 %| M' i j)
@@ -183,7 +182,7 @@ constructor=> //; first by rewrite -HblockL -Hblock invrM // mulmxA mulmxKV.
 by rewrite -HblockL unitmx_mul unitmxE (det_lblock 1 P) !det1 mulr1 unitr1.
 Qed.
 
-CoInductive improve_pivot_spec m n M :
+Variant improve_pivot_spec m n M :
   'M[E]_(1 + m) * 'M_(1 + m,1 + n) * 'M_(1 + n) -> Type :=
   ImprovePivotSpec L A R of L *m M *m R = A
   & (forall i j, A 0 0 %| A i j)
@@ -278,7 +277,6 @@ case H: (Smith _) (Ih n' M) => [[i s] k] /=.
 by rewrite size_map minnSS ltnS.
 Qed.
 
-Definition euclidEDRMixin := EDR.Mixin SmithP.
-Canonical euclidEDRType   := Eval hnf in EDRType E euclidEDRMixin.
+HB.instance Definition _ := DvdRing_IsEDR.Build E SmithP.
 
-End smith.
+HB.end.

@@ -1,5 +1,6 @@
 (** This file is part of CoqEAL, the Coq Effective Algebra Library.
 (c) Copyright INRIA and University of Gothenburg, see LICENSE *)
+From HB Require Import structures.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq path tuple.
 From mathcomp Require Import perm fingroup choice ssralg fintype finfun poly polydiv.
 From mathcomp Require Import bigop matrix zmodp mxalgebra.
@@ -17,97 +18,33 @@ Import GRing.Theory.
 Local Open Scope ring_scope.
 
 (** Elementary divisor rings *)
-Module EDR.
-
-CoInductive smith_spec (R : dvdRingType) m n M
+Variant smith_spec (R : dvdRingType) m n M
   : 'M[R]_m * seq R * 'M[R]_n -> Type :=
     SmithSpec P d Q of P *m M *m Q = diag_mx_seq m n d
                      & sorted %|%R d
                      & P \in unitmx
                      & Q \in unitmx : smith_spec M (P,d,Q).
 
-Record mixin_of (R : dvdRingType) : Type := Mixin {
+HB.mixin Record DvdRing_IsEDR R of DvdRing R := {
   smith : forall m n, 'M[R]_(m,n) -> 'M[R]_m * seq R * 'M[R]_n;
-  _ : forall m n (M : 'M[R]_(m,n)), smith_spec M (smith M)
+  smithP : forall m n (M : 'M[R]_(m,n)), smith_spec M (smith _ _ M)
 }.
 
-Section ClassDef.
+HB.structure Definition EDR := { R of DvdRing_IsEDR R & DvdRing R }.
 
-(** EDRs are based on dvdrings *)
-Record class_of (R : Type) : Type := Class {
-  base  : DvdRing.class_of R;
-  mixin : mixin_of (DvdRing.Pack base)
-}.
-Local Coercion base : class_of >-> DvdRing.class_of.
-
-Structure type : Type := Pack {sort : Type; _ : class_of sort}.
-Local Coercion sort : type >-> Sortclass.
-
-Variable (T : Type) (cT : type).
-Definition class := let: Pack _ c := cT return class_of cT in c.
-Definition clone c of phant_id class c := @Pack T c.
-
-Definition pack b0 (m0 : mixin_of (@DvdRing.Pack T b0)) :=
-  fun bT b & phant_id (DvdRing.class bT) b =>
-  fun    m & phant_id m m0 => Pack (@Class T b m) .
-
-Definition eqType := Equality.Pack class.
-Definition choiceType := Choice.Pack class.
-Definition zmodType := GRing.Zmodule.Pack class.
-Definition ringType := GRing.Ring.Pack class.
-Definition comRingType := GRing.ComRing.Pack class.
-Definition unitRingType := GRing.UnitRing.Pack class.
-Definition comUnitRingType := GRing.ComUnitRing.Pack class.
-Definition idomainType := GRing.IntegralDomain.Pack class.
-Definition dvdRingType := DvdRing.Pack class.
-
-End ClassDef.
-
-Module Exports.
-Coercion base : class_of >-> DvdRing.class_of.
-Coercion mixin : class_of >-> mixin_of.
-Coercion sort : type >-> Sortclass.
-Bind Scope ring_scope with sort.
-Coercion eqType : type >-> Equality.type.
-Canonical Structure eqType.
-Coercion choiceType : type >-> Choice.type.
-Canonical Structure choiceType.
-Coercion zmodType : type >-> GRing.Zmodule.type.
-Canonical Structure zmodType.
-Coercion ringType : type >-> GRing.Ring.type.
-Canonical Structure ringType.
-Coercion comRingType : type >-> GRing.ComRing.type.
-Canonical Structure comRingType.
-Coercion unitRingType : type >-> GRing.UnitRing.type.
-Canonical Structure unitRingType.
-Coercion comUnitRingType : type >-> GRing.ComUnitRing.type.
-Canonical Structure comUnitRingType.
-Coercion idomainType : type >-> GRing.IntegralDomain.type.
-Canonical Structure idomainType.
-Coercion dvdRingType : type >-> DvdRing.type.
-Canonical Structure dvdRingType.
-
-Notation edrType := type.
-Notation EDRType T m := (@pack T _ m _ _ id _ id).
-Notation EDRMixin := Mixin.
-Notation "[ 'edrType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
+Bind Scope ring_scope with EDR.sort.
+Notation edrType := EDR.type.
+Notation "[ 'edrType' 'of' T 'for' cT ]" := (EDR.clone T cT)
   (at level 0, format "[ 'edrType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'edrType' 'of' T ]" := (@clone T _ _ id)
+Notation "[ 'edrType' 'of' T ]" := (EDR.clone T _)
   (at level 0, format "[ 'edrType'  'of'  T ]") : form_scope.
-End Exports.
 
-End EDR.
-Export EDR.Exports.
-
-Definition smith R := EDR.smith (EDR.class R).
-Definition smith_spec := EDR.smith_spec.
+Arguments smith {_} [_ _].
+Arguments smithP {_} [_ _].
 
 Section EDR_Theory.
 
 Variable R : edrType.
-
-Lemma smithP : forall m n (M : 'M[R]_(m,n)), smith_spec M (smith M).
-Proof. by case: R=> [? [? []]]. Qed.
 
 Definition smith_seq m n (M : 'M[R]_(m,n)) := (smith M).1.2.
 
@@ -134,8 +71,7 @@ rewrite -(lshift0 1 0) mxE (row_mxEl a%:M) 2!mxE (row_mxEr a%:M) => <-.
 by rewrite -!mulrA -mulrDr dvdr_mull // dvdr_add ?dvdr_mulr ?mxE.
 Qed.
 
-Definition gcdMixin := GcdDomain.Mixin gcd_edrP.
-Canonical gcdType   := Eval hnf in GcdDomainType R gcdMixin.
+HB.instance Definition _ := DvdRing_HasGcd.Build R gcd_edrP.
 
 (** The existence of an algorithm computing Smith normal form implies
 the the ring is a Bézout domain *)
@@ -143,7 +79,7 @@ Definition bezout_edr a b : R * R :=
   let: (P,d,Q) := smith (row_mx a%:M b%:M : 'rV_2)
   in (P 0 0 * Q 0 0,P 0 0 * Q (rshift 1 0) 0).
 
-Lemma bezout_edrP a b : BezoutDomain.bezout_spec a b (bezout_edr a b).
+Lemma bezout_edrP a b : bezout_spec a b (bezout_edr a b).
 Proof.
 have := erefl (gcd_edr a b); rewrite {-1}/gcd_edr /smith_seq.
 rewrite /bezout_edr; case: smithP => /= P d Q heq hsorted Punitmx Qunitmx hg.
@@ -155,12 +91,11 @@ rewrite -{1}(lshift0 1 0) mxE (row_mxEl a%:M) 2!mxE (row_mxEr a%:M) !mxE !mulr1n
 by rewrite mulrAC [_ * b * _]mulrAC=> ->.
 Qed.
 
-Definition bezoutMixin := BezoutDomainMixin bezout_edrP.
-Canonical bezoutType   := Eval hnf in BezoutDomainType R bezoutMixin.
+HB.instance Definition _ := GcdDomain_HasBezout.Build R bezout_edrP.
 
 (* Hence are EDRs also strongly discrete *)
-Definition stronglyDiscreteMixin := bezout_stronglyDiscreteMixin [bezoutDomainType of R].
-Canonical stronglyDiscreteType   := Eval hnf in StronglyDiscreteType R stronglyDiscreteMixin.
+HB.instance Definition _ := Ring_IsStronglyDiscrete.Build R
+  (@bmember_correct [the bezoutDomainType of R : Type]).
 
 (* As we have a Smith normal form algorithm we can compute ker and coker *)
 Section snf_coherent.
@@ -271,8 +206,7 @@ apply: (iffP idP)=> [|[Y ->]]; last by rewrite -mulmxA mul_kermx mulmx0.
 by move/eqP/mulmxKV_kermx=> hX; exists (X *m col_ebase M).
 Qed.
 
-Definition coherentMixin := CoherentRing.Mixin kermxP.
-Canonical coherentType   := Eval hnf in CoherentRingType R coherentMixin.
+HB.instance Definition _ := Ring_IsCoherent.Build R kermxP.
 
 End snf_coherent.
 
@@ -370,8 +304,9 @@ Qed.
 
 Lemma eqd_seq_gcdr :
   \prod_(i < k) s`_i %=
-  \big[(@gcdr gcdType)/0]_(f : {ffun 'I_k -> 'I_m})
-  (\big[(@gcdr gcdType)/0]_(g : {ffun 'I_k -> 'I_n}) minor f g (diag_mx_seq m n s)).
+  \big[(@gcdr [the gcdDomainType of R : Type])/0]_(f : {ffun 'I_k -> 'I_m})
+  (\big[(@gcdr [the gcdDomainType of R : Type])/0]_(g : {ffun 'I_k -> 'I_n})
+     minor f g (diag_mx_seq m n s)).
 Proof.
 apply/andP; split; last first.
   rewrite prod_minor_seq; set j := [ffun _ => _].
@@ -451,8 +386,9 @@ Qed.
 
 Lemma Smith_gcdr_spec :
   \prod_(i < k) s`_i %=
-  \big[(@gcdr gcdType)/0]_(f : {ffun 'I_k -> 'I_m})
-   (\big[(@gcdr gcdType)/0]_(g : {ffun 'I_k -> 'I_n}) minor f g A) .
+  \big[(@gcdr [the gcdDomainType of R : Type])/0]_(f : {ffun 'I_k -> 'I_m})
+  (\big[(@gcdr [the gcdDomainType of R : Type])/0]_(g : {ffun 'I_k -> 'I_n})
+     minor f g A).
 Proof.
 rewrite (eqd_ltrans eqd_seq_gcdr).
 have [ _ _ [M [N [_ _ Heqs]]]]:= HAs.
@@ -462,8 +398,9 @@ rewrite conform_mx_id in Hseq.
 have HdivmA p q k1 (B C : 'M[R]_(p,q)) (M1 : 'M_p) (N1 : 'M_q) :
    forall (H : M1 *m C *m N1 = B),
    forall (f : 'I_k1 -> 'I_p) (g : 'I_k1 -> 'I_q),
-   \big[(@gcdr gcdType)/0]_(f0 : {ffun 'I_k1 -> 'I_p})
-    \big[(@gcdr gcdType)/0]_(g0 : {ffun 'I_k1 -> 'I_q}) minor f0 g0 C
+   \big[(@gcdr [the gcdDomainType of R : Type])/0]_(f0 : {ffun 'I_k1 -> 'I_p})
+    \big[(@gcdr [the gcdDomainType of R : Type])/0]_(g0 : {ffun 'I_k1 -> 'I_q})
+      minor f0 g0 C
     %| minor f g B.
   move=> H f g.
   have HBC: minor f g B =  \sum_(f0 : {ffun 'I__ -> 'I__ } | strictf f0)
