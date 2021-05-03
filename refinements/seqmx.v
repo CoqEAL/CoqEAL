@@ -228,6 +228,8 @@ Definition copid_seqmx m r := (seqmx1 m - pid_seqmx m m r)%C.
 
 End seqmx_op.
 
+Parametricity IsSUB.axioms_.
+Parametricity SUB.axioms_ as axioms___R.
 Parametricity subType.
 Parametricity ord_enum_eq.
 Parametricity seqmx_of_fun.

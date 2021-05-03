@@ -303,6 +303,7 @@ Program Definition bigQ2rat (bq : bigQ) :=
   let q := Qred [bq]%bigQ in
   @Rat (Z2int (Qnum q), Z2int (Z.pos (Qden q))) _.
 Next Obligation.
+move=> bq /=.
 rewrite ltz_nat nat_of_pos_gt0 /=.
 set q := [bq]%bigQ.
 have /Qcanon.Qred_iff HQ := Qcanon.Qred_involutive q.
