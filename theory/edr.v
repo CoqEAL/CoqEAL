@@ -97,10 +97,6 @@ Qed.
 
 HB.instance Definition _ := GcdDomain_HasBezout.Build R bezout_edrP.
 
-(* Hence are EDRs also strongly discrete *)
-HB.instance Definition _ := Ring_IsStronglyDiscrete.Build R
-  (@bmember_correct [the bezoutDomainType of R : Type]).
-
 (* As we have a Smith normal form algorithm we can compute ker and coker *)
 Section snf_coherent.
 

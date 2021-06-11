@@ -5,7 +5,7 @@ From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq path
 From mathcomp Require Import ssralg fintype perm choice fingroup.
 From mathcomp Require Import matrix bigop zmodp mxalgebra poly.
 
-Require Import ssrcomplements dvdring.
+Require Import ssrcomplements.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -619,33 +619,4 @@ Notation "A == B" := ((subid A B) && (subid B A)) : ideal_scope.
 Notation "I +i J" := (addid I J) (at level 30).
 Notation "I *i J" := (mulid I J) (at level 50).
 
-Section BezoutStronglyDiscrete.
-
-Variable R : bezoutDomainType.
-
-Definition bmember n (x : R) (I : 'cV[R]_n) := match x %/? principal_gen I with
-  | Some a => Some (a %:M *m principal_w1 I)
-  | None   => None
-end.
-
-Lemma bmember_correct : forall n (x : R) (I : 'cV[R]_n),
-  member_spec x I (bmember x I).
-Proof.
-rewrite /bmember => n x I.
-case: odivrP => [a | ] Ha /=; constructor.
-  by rewrite -mulmxA principal_w1_correct Ha scalar_mxM.
-move => J.
-rewrite -(principal_w2_correct I) /principal mulmxA scalar_mxC.
-move: (Ha ((J *m principal_w2 I) 0 0)).
-apply/contra.
-rewrite {1}[J *m principal_w2 I]mx11_scalar -scalar_mxM.
-move/eqP/matrixP => /(_ 0 0).
-rewrite !mxE /= !mulr1n => ->.
-by rewrite mulrC.
-Qed.
-
-#[non_forgetful_inheritance]
-HB.instance Definition _ := Ring_IsStronglyDiscrete.Build R bmember_correct.
-
-End BezoutStronglyDiscrete.
 Hint Resolve subid_refl sub0id subid1 : core.

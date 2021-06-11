@@ -5,6 +5,8 @@ From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq path
 From mathcomp Require Import ssralg fintype perm tuple choice.
 From mathcomp Require Import matrix bigop zmodp mxalgebra poly.
 
+Require Import stronglydiscrete.
+
 (* Require Import generic_quotient. (* testing *) *)
 
 Import GRing.Theory.
@@ -1158,13 +1160,16 @@ End GCDDomainTheory.
 Variant bezout_spec (R : gcdDomainType) (a b : R) : R * R -> Type:=
   BezoutSpec x y of gcdr a b %= x * a + y * b : bezout_spec a b (x, y).
 
-HB.mixin Record GcdDomain_HasBezout R of GcdDomain R := {
+HB.mixin Record GcdDomain_HasPreBezout R of GcdDomain R := {
   bezout : R -> R -> (R * R);
   bezout_subdef : forall a b, bezout_spec a b (bezout a b)
 }.
 
+HB.structure Definition PreBezoutDomain :=
+  { R of GcdDomain_HasPreBezout R & GcdDomain R }.
+
 HB.structure Definition BezoutDomain :=
-  { R of GcdDomain_HasBezout R & GcdDomain R }.
+  { R of PreBezoutDomain R & StronglyDiscrete R }.
 
 Bind Scope ring_scope with BezoutDomain.sort.
 Notation bezoutDomainType := BezoutDomain.type.
@@ -1175,7 +1180,7 @@ Notation "[ 'bezoutDomainType' 'of' T ]" := (BezoutDomain.clone T _)
 
 Section BezoutDomainTheory.
 
-Variable R : bezoutDomainType.
+Variable R : PreBezoutDomain.type.
 
 Implicit Types a b : R.
 
@@ -1403,6 +1408,40 @@ Qed.
 End Bezout_mx.
 
 End BezoutDomainTheory.
+
+HB.factory Record GcdDomain_HasBezout R of GcdDomain R := {
+  bezout : R -> R -> (R * R);
+  bezout_subdef : forall a b, bezout_spec a b (bezout a b)
+}.
+
+HB.builders Context R of GcdDomain_HasBezout R.
+
+HB.instance Definition _ := GcdDomain_HasPreBezout.Build R bezout_subdef.
+
+Definition bmember n (x : R) (I : 'cV[R]_n) := match x %/? principal_gen I with
+  | Some a => Some (a %:M *m principal_w1 I)
+  | None   => None
+end.
+
+Lemma bmember_correct : forall n (x : R) (I : 'cV[R]_n),
+  member_spec x I (bmember x I).
+Proof.
+rewrite /bmember => n x I.
+case: odivrP => [a | ] Ha /=; constructor.
+  by rewrite -mulmxA principal_w1_correct Ha scalar_mxM.
+move => J.
+rewrite -(principal_w2_correct I) /principal mulmxA scalar_mxC.
+move: (Ha ((J *m principal_w2 I) 0 0)).
+apply/contra.
+rewrite {1}[J *m principal_w2 I]mx11_scalar -scalar_mxM.
+move/eqP/matrixP => /(_ 0 0).
+rewrite !mxE /= !mulr1n => ->.
+by rewrite mulrC.
+Qed.
+
+HB.instance Definition _ := Ring_IsStronglyDiscrete.Build R bmember_correct.
+
+HB.end.
 
 (* Section Mixins. *)
 

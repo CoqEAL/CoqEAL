@@ -5,7 +5,7 @@ From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq.
 From mathcomp Require Import path choice fintype tuple finset ssralg.
 From mathcomp Require Import matrix poly. (*  generic_quotient. *)
 From mathcomp Require Import bigop polydiv.
-From CoqEAL Require Import dvdring.
+From CoqEAL Require Import stronglydiscrete dvdring.
 
 Import GRing.Theory.
 Import Pdiv.Ring Pdiv.Idomain Pdiv.RingComRreg dvdring.Notations.
