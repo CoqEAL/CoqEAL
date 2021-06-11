@@ -644,6 +644,7 @@ rewrite !mxE /= !mulr1n => ->.
 by rewrite mulrC.
 Qed.
 
+#[non_forgetful_inheritance]
 HB.instance Definition _ := Ring_IsStronglyDiscrete.Build R bmember_correct.
 
 End BezoutStronglyDiscrete.

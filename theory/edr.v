@@ -71,6 +71,7 @@ rewrite -(lshift0 1 0) mxE (row_mxEl a%:M) 2!mxE (row_mxEr a%:M) => <-.
 by rewrite -!mulrA -mulrDr dvdr_mull // dvdr_add ?dvdr_mulr ?mxE.
 Qed.
 
+#[non_forgetful_inheritance]
 HB.instance Definition _ := DvdRing_HasGcd.Build R gcd_edrP.
 
 (** The existence of an algorithm computing Smith normal form implies
@@ -91,9 +92,11 @@ rewrite -{1}(lshift0 1 0) mxE (row_mxEl a%:M) 2!mxE (row_mxEr a%:M) !mxE !mulr1n
 by rewrite mulrAC [_ * b * _]mulrAC=> ->.
 Qed.
 
+#[non_forgetful_inheritance]
 HB.instance Definition _ := GcdDomain_HasBezout.Build R bezout_edrP.
 
 (* Hence are EDRs also strongly discrete *)
+#[non_forgetful_inheritance]
 HB.instance Definition _ := Ring_IsStronglyDiscrete.Build R
   (@bmember_correct [the bezoutDomainType of R : Type]).
 
@@ -206,6 +209,7 @@ apply: (iffP idP)=> [|[Y ->]]; last by rewrite -mulmxA mul_kermx mulmx0.
 by move/eqP/mulmxKV_kermx=> hX; exists (X *m col_ebase M).
 Qed.
 
+#[non_forgetful_inheritance]
 HB.instance Definition _ := Ring_IsCoherent.Build R kermxP.
 
 End snf_coherent.

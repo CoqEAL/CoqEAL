@@ -419,6 +419,7 @@ HB.end.
 (* Using the above result one can prove that Bezout rings are coherent, however
    this is not what we want as we want to prove that constructive PIDs are
    coherent using smith *)
+Module BezoutCoherent.
 Section BezoutCoherent.
 
 Variable R : bezoutDomainType.
@@ -513,7 +514,9 @@ case: (bcap_int h1 h2) => D hD.
 by exists D.
 Qed.
 
+#[non_forgetful_inheritance]
 HB.instance Definition _ := StronglyDiscrete_IsIntersectionCoherent.Build R
   bcap_spec.
 
+End BezoutCoherent.
 End BezoutCoherent.

@@ -712,6 +712,7 @@ HB.instance Definition _ := DvdRing_IsEDR.Build R krull1_smithP.
 
 HB.end.
 
+Module AdequacyPID.
 Section AdequacyPID.
 
 Variable R : pidType.
@@ -743,6 +744,7 @@ Proof.
 by rewrite /pid_smith; apply: gdco_smithP=> a b; case: (pid_gdco a b).
 Qed.
 
+#[non_forgetful_inheritance]
 HB.instance Definition _ := DvdRing_IsEDR.Build R pid_smithP.
 
 (* This should be provable *)
@@ -751,4 +753,5 @@ HB.instance Definition _ := DvdRing_IsEDR.Build R pid_smithP.
 (* admit. *)
 (* Qed. *)
 
+End AdequacyPID.
 End AdequacyPID.
