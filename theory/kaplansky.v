@@ -4,7 +4,7 @@ From HB Require Import structures.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq path.
 From mathcomp Require Import ssralg fintype matrix mxalgebra bigop zmodp perm choice.
 
-Require Import dvdring mxstructure minor edr.
+Require Import dvdring mxstructure minor stronglydiscrete coherent edr.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

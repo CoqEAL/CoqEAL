@@ -25,12 +25,13 @@ Variant smith_spec (R : dvdRingType) m n M
                      & P \in unitmx
                      & Q \in unitmx : smith_spec M (P,d,Q).
 
-HB.mixin Record DvdRing_IsEDR R of DvdRing R := {
+HB.mixin Record Bezout_Coherent_IsEDR R of DvdRing R := {
   smith : forall m n, 'M[R]_(m,n) -> 'M[R]_m * seq R * 'M[R]_n;
   smithP : forall m n (M : 'M[R]_(m,n)), smith_spec M (smith _ _ M)
 }.
 
-HB.structure Definition EDR := { R of DvdRing_IsEDR R & DvdRing R }.
+HB.structure Definition EDR :=
+  { R of Bezout_Coherent_IsEDR R & BezoutDomain R & CoherentRing R }.
 
 Bind Scope ring_scope with EDR.sort.
 Notation edrType := EDR.type.
@@ -42,9 +43,12 @@ Notation "[ 'edrType' 'of' T ]" := (EDR.clone T _)
 Arguments smith {_} [_ _].
 Arguments smithP {_} [_ _].
 
-Section EDR_Theory.
+HB.factory Record DvdRing_IsEDR R of DvdRing R := {
+  smith : forall m n, 'M[R]_(m,n) -> 'M[R]_m * seq R * 'M[R]_n;
+  smithP : forall m n (M : 'M[R]_(m,n)), smith_spec M (smith _ _ M)
+}.
 
-Variable R : edrType.
+HB.builders Context R of DvdRing_IsEDR R.
 
 Definition smith_seq m n (M : 'M[R]_(m,n)) := (smith M).1.2.
 
@@ -71,7 +75,6 @@ rewrite -(lshift0 1 0) mxE (row_mxEl a%:M) 2!mxE (row_mxEr a%:M) => <-.
 by rewrite -!mulrA -mulrDr dvdr_mull // dvdr_add ?dvdr_mulr ?mxE.
 Qed.
 
-#[non_forgetful_inheritance]
 HB.instance Definition _ := DvdRing_HasGcd.Build R gcd_edrP.
 
 (** The existence of an algorithm computing Smith normal form implies
@@ -92,11 +95,9 @@ rewrite -{1}(lshift0 1 0) mxE (row_mxEl a%:M) 2!mxE (row_mxEr a%:M) !mxE !mulr1n
 by rewrite mulrAC [_ * b * _]mulrAC=> ->.
 Qed.
 
-#[non_forgetful_inheritance]
 HB.instance Definition _ := GcdDomain_HasBezout.Build R bezout_edrP.
 
 (* Hence are EDRs also strongly discrete *)
-#[non_forgetful_inheritance]
 HB.instance Definition _ := Ring_IsStronglyDiscrete.Build R
   (@bmember_correct [the bezoutDomainType of R : Type]).
 
@@ -128,7 +129,8 @@ Lemma mulmx_ebase m n (M : 'M_(m, n)) :
 Proof.
 rewrite /col_ebase /diag_mx /row_ebase /diag /smith_seq.
 case: smithP => /= L0 d R0 h1 h2 L0unit R0unit.
-rewrite diag_mx_seq_filter0 ?(sorted_take (@dvdr_trans R)) // diag_mx_seq_take_min.
+rewrite diag_mx_seq_filter0 ?(sorted_take (@dvdr_trans [the dvdRingType of R]))
+  // diag_mx_seq_take_min.
 by rewrite -h1 !mulmxA mulVmx // mul1mx -mulmxA mulmxV ?mulmx1.
 Qed.
 
@@ -149,8 +151,9 @@ Lemma mulmx_diag_mx m n (M : 'M_(m, n)) :
 Proof.
 rewrite /col_ebase /diag_mx /row_ebase /diag /smith_seq !invmxK.
 case: smithP=> L0 d R0 h1 h2 _ _.
-rewrite diag_mx_seq_filter0; last exact: (sorted_take (@dvdr_trans R)).
-by rewrite diag_mx_seq_take_min.
+rewrite diag_mx_seq_filter0.
+  by rewrite diag_mx_seq_take_min.
+exact: (sorted_take (@dvdr_trans [the dvdRingType of R])).
 Qed.
 
 Lemma mul_kermx m n (M : 'M_(m, n)) : kermx M *m M = 0.
@@ -209,8 +212,51 @@ apply: (iffP idP)=> [|[Y ->]]; last by rewrite -mulmxA mul_kermx mulmx0.
 by move/eqP/mulmxKV_kermx=> hX; exists (X *m col_ebase M).
 Qed.
 
-#[non_forgetful_inheritance]
+End snf_coherent.
+
 HB.instance Definition _ := Ring_IsCoherent.Build R kermxP.
+
+HB.instance Definition _ := Bezout_Coherent_IsEDR.Build R smithP.
+
+HB.end.
+
+Section EDR_Theory.
+
+Variable R : edrType.
+
+Section snf_coherent.
+
+Section defs.
+
+Variable m n : nat.
+Variable M : 'M[R]_(m,n).
+
+Definition smith_seq := (smith M).1.2.
+
+Definition col_ebase := invmx (smith M).1.1.
+Definition row_ebase := invmx (smith M).2.
+
+(* Filter out all trailing zeroes *)
+Definition diag      := [seq x <- take (minn m n) smith_seq | x != 0 ].
+Definition diag_mx   := diag_mx_seq m n diag.
+
+End defs.
+
+Lemma row_ebase_unit m n (M : 'M_(m, n)) : row_ebase M \in unitmx.
+Proof. by rewrite unitmx_inv; case: smithP. Qed.
+
+Lemma col_ebase_unit m n (M : 'M_(m, n)) : col_ebase M \in unitmx.
+Proof. by rewrite /col_ebase unitmx_inv; case: smithP. Qed.
+
+Lemma mulmx_diag_mx m n (M : 'M_(m, n)) :
+  diag_mx M = invmx (col_ebase M) *m M *m invmx (row_ebase M).
+Proof.
+rewrite /col_ebase /diag_mx /row_ebase /diag /smith_seq !invmxK.
+case: smithP=> L0 d R0 h1 h2 _ _.
+rewrite diag_mx_seq_filter0.
+  by rewrite diag_mx_seq_take_min.
+exact: (sorted_take (@dvdr_trans [dvdRingType of R])).
+Qed.
 
 End snf_coherent.
 
